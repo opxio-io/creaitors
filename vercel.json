@@ -6,6 +6,7 @@
     { "source": "/sales", "destination": "/sales.html" },
     { "source": "/crm", "destination": "/crm.html" },
     { "source": "/campaigns", "destination": "/campaigns.html" },
-    { "source": "/team-stats", "destination": "/team-stats.html" }
+    { "source": "/team-stats", "destination": "/team-stats.html" },
+    { "source": "/deals", "destination": "/deals.html" }
   ]
 }
