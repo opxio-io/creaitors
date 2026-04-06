@@ -117,8 +117,8 @@ module.exports = async function handler(req, res) {
               'Name': {
                 title: [{ text: { content: rowName } }],
               },
-              'Billing Month': {
-                date: { start: dateStr },
+              'Month': {
+                rich_text: [{ text: { content: label } }],
               },
               'Client': {
                 relation: [{ id: clientPageId }],
