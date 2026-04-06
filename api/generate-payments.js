@@ -114,11 +114,11 @@ module.exports = async function handler(req, res) {
           body: JSON.stringify({
             parent: { database_id: CLIENT_PAYMENTS_DB_ID },
             properties: {
-              'Name': {
+              'Payment Record': {
                 title: [{ text: { content: rowName } }],
               },
-              'Month': {
-                rich_text: [{ text: { content: label } }],
+              'Billing Month': {
+                date: { start: dateStr },
               },
               'Client': {
                 relation: [{ id: clientPageId }],
