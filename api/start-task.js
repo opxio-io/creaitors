@@ -79,7 +79,7 @@ module.exports = async function handler(req, res) {
           headers,
           body: JSON.stringify({
             properties: {
-              'Content Status': { status: { name: 'In Production' } },
+              'Content Status': { status: { name: 'In-Production' } },
             },
           }),
         });
