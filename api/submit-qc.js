@@ -87,36 +87,6 @@ module.exports = async function handler(req, res) {
       }),
     });
 
-    // After computing totalMins and durationDisplay in your Submit QC function
-
-// Patch the task first
-await fetch(`https://api.notion.com/v1/pages/${taskPageId}`, {
-  method: 'PATCH',
-  headers,
-  body: JSON.stringify({
-    properties: {
-      'Task Status': { status: { name: 'Pending QC Review' } },
-      'Task Done On': { date: { start: now } },
-      'Accumulated Mins': { number: totalMins },
-      'Duration Display': { rich_text: [{ type: 'text', text: { content: durationDisplay } }] },
-    },
-  }),
-});
-
-// If task is "Content Posting", update the linked Content Production status
-if (taskName === 'Content Posting' && props['Content Production']?.relation?.length > 0) {
-  const contentProductionId = props['Content Production'].relation[0].id;
-  await fetch(`https://api.notion.com/v1/pages/${contentProductionId}`, {
-    method: 'PATCH',
-    headers,
-    body: JSON.stringify({
-      properties: {
-        'Content Status': { status: { name: 'Final QC Review' } },
-      },
-    }),
-  });
-}
-
     if (!updateRes.ok) throw new Error(`Failed to submit QC: ${await updateRes.text()}`);
 
     return res.status(200).json({

@@ -1,6 +1,9 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    { "source": "/bottlenecks", "destination": "/bottlenecks.html" },
+    { "source": "/stats", "destination": "/stats.html" },
+    { "source": "/sales", "destination": "/sales.html" },
+    { "source": "/team", "destination": "/public/index.html" }
   ]
 }

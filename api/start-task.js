@@ -1,4 +1,9 @@
 // Vercel Serverless Function — Start Task
+// Sets Task Started On = now, clears Task Done On + Duration Display, Task Status = In Progress
+// If current Task Status is "Review Needed" → keeps Accumulated Mins (continuation after QC rejection)
+// Otherwise → resets Accumulated Mins to 0 (fresh start)
+// NEW: If the task is "Content Planning", also sets the parent Content's "Content Status" to "In Production"
+// Environment variables: NOTION_API_KEY
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -18,7 +23,7 @@ module.exports = async function handler(req, res) {
       'Content-Type': 'application/json',
     };
 
-    // Extract task page ID
+    // Extract task page ID from Notion button webhook payload
     const body = req.body || {};
     const taskPageId = (
       body.page_id ||
@@ -30,7 +35,7 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'Missing page_id in request body.' });
     }
 
-    // Fetch task
+    // Fetch current task page to read Task Status and Accumulated Mins
     const taskRes = await fetch(`https://api.notion.com/v1/pages/${taskPageId}`, { headers });
     if (!taskRes.ok) throw new Error(`Failed to fetch task: ${await taskRes.text()}`);
     const taskPage = await taskRes.json();
@@ -40,13 +45,14 @@ module.exports = async function handler(req, res) {
     const currentStatus = props['Task Status']?.status?.name || '';
     const existingAccumulatedMins = props['Accumulated Mins']?.number || 0;
 
-    // QC logic
+    // If restarting after QC rejection, preserve accumulated time; otherwise fresh start
     const isQcRejection = currentStatus === 'Review Needed';
     const newAccumulatedMins = isQcRejection ? existingAccumulatedMins : 0;
 
     const now = new Date().toISOString();
 
-    // Update task → In progress
+    // Patch: stamp Task Started On, clear Task Done On + Duration Display, set In Progress
+    // Reset or preserve Accumulated Mins based on whether this is a QC rejection restart
     const updateRes = await fetch(`https://api.notion.com/v1/pages/${taskPageId}`, {
       method: 'PATCH',
       headers,
@@ -63,30 +69,26 @@ module.exports = async function handler(req, res) {
 
     if (!updateRes.ok) throw new Error(`Failed to start task: ${await updateRes.text()}`);
 
-    // --- Content Planning → In Production (ONLY on transition) ---
+    // --- Content Planning → In Production ---
+    // Only when "Content Planning" is started, update the parent content's status
     let contentStatusUpdated = false;
-
-    const isStartingNow = currentStatus !== 'In progress';
-
-    if (taskName === 'Content Planning' && isStartingNow) {
+    if (taskName === 'Content Planning') {
       const contentRelation = props['Content Production']?.relation;
-
       if (contentRelation && contentRelation.length > 0) {
         const contentPageId = contentRelation[0].id;
-
         const contentUpdateRes = await fetch(`https://api.notion.com/v1/pages/${contentPageId}`, {
           method: 'PATCH',
           headers,
           body: JSON.stringify({
             properties: {
-              'Content Status': { status: { name: 'In-Production' } },
+              'Content Status': { status: { name: 'In Production' } },
             },
           }),
         });
-
         if (contentUpdateRes.ok) {
           contentStatusUpdated = true;
         }
+        // Non-fatal: if this fails, the task itself was still started successfully
       }
     }
 
