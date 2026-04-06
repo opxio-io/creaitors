@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Executive Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: transparent;
+    color: #E8E8E8;
+    padding: 16px;
+  }
+
+  .loading {
+    display: flex; align-items: center; justify-content: center;
+    height: 160px; flex-direction: column; gap: 12px;
+  }
+  .spinner {
+    width: 24px; height: 24px;
+    border: 2px solid rgba(255,255,255,0.08);
+    border-top-color: #999;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 12px; color: #555; }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  .stat-card {
+    background: #1A1A1A;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 20px 22px;
+    transition: border-color 0.2s;
+  }
+  .stat-card:hover { border-color: rgba(255,255,255,0.1); }
+
+  .stat-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #777;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 10px;
+  }
+
+  .stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+
+  .stat-sub {
+    font-size: 12px;
+    color: #555;
+    margin-top: 8px;
+    font-weight: 500;
+  }
+
+  @media (max-width: 800px) {
+    .stat-row { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 440px) {
+    .stat-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div id="dashboard">
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <div class="loading-text">Loading...</div>
+  </div>
+</div>
+
+<script>
+function formatRM(n) {
+  if (n >= 1000000) return 'RM ' + (n / 1000000).toFixed(1) + 'M';
+  if (n >= 1000) return 'RM ' + (n / 1000).toFixed(1) + 'K';
+  return 'RM ' + n.toLocaleString();
+}
+
+function render(s) {
+  document.getElementById('dashboard').innerHTML =
+    '<div class="stat-row">' +
+
+    '<div class="stat-card">' +
+      '<div class="stat-label">Active Deals</div>' +
+      '<div class="stat-value">' + s.activeDeals.count + '</div>' +
+      '<div class="stat-sub">Pipeline ' + formatRM(s.activeDeals.totalValue) + '</div>' +
+    '</div>' +
+
+    '<div class="stat-card">' +
+      '<div class="stat-label">Won This Month</div>' +
+      '<div class="stat-value">' + s.wonThisMonth.count + '</div>' +
+      '<div class="stat-sub">Revenue ' + formatRM(s.wonThisMonth.totalValue) + '</div>' +
+    '</div>' +
+
+    '<div class="stat-card">' +
+      '<div class="stat-label">Retainer Unpaid</div>' +
+      '<div class="stat-value">' + s.retainerUnpaid.count + '</div>' +
+      '<div class="stat-sub">' + (s.retainerUnpaid.count > 0 ? s.retainerUnpaid.count + ' pending' : 'All clear') + '</div>' +
+    '</div>' +
+
+    '<div class="stat-card">' +
+      '<div class="stat-label">KOL/Ads Unpaid</div>' +
+      '<div class="stat-value">' + s.kolUnpaid.count + '</div>' +
+      '<div class="stat-sub">' + (s.kolUnpaid.count > 0 ? s.kolUnpaid.count + ' pending' : 'All clear') + '</div>' +
+    '</div>' +
+
+    '</div>';
+}
+
+async function loadData() {
+  try {
+    var res = await fetch('/api/sales');
+    if (!res.ok) throw new Error('API error');
+    var data = await res.json();
+    render(data);
+  } catch (err) {
+    document.getElementById('dashboard').innerHTML =
+      '<div class="loading"><div style="font-size:13px; color:#EF4444; font-weight:600;">Could not load data</div><div style="font-size:11px; color:#555; margin-top:6px;">Check Vercel env vars and Notion integration access.</div></div>';
+  }
+}
+
+loadData();
+setInterval(loadData, 5 * 60 * 1000);
+</script>
+</body>
+</html>

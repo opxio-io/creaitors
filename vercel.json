@@ -1,9 +1,9 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/bottlenecks", "destination": "/bottlenecks.html" },
     { "source": "/stats", "destination": "/stats.html" },
+    { "source": "/bottlenecks", "destination": "/bottlenecks.html" },
     { "source": "/sales", "destination": "/sales.html" },
-    { "source": "/team", "destination": "/public/index.html" }
+    { "source": "/team", "destination": "/team.html" }
   ]
 }
