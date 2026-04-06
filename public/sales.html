@@ -74,7 +74,9 @@ if (localStorage.getItem('sales-theme') === 'light') {
 
 function render(s) {
   var isLight = document.body.classList.contains('light');
-  document.getElementById('dashboard').innerHTML =
+  var el = document.getElementById('dashboard');
+  el.className = '';
+  el.innerHTML =
     '<div class="top-bar"><button class="toggle-btn" onclick="toggleMode()">' + (isLight ? 'Dark mode' : 'Light mode') + '</button><button class="toggle-btn" onclick="loadData()" style="margin-left:8px;">Refresh</button></div>' +
     '<div class="stat-row">' +
 
