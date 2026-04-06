@@ -1,9 +1,11 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/stats", "destination": "/stats.html" },
+    { "source": "/content-stats", "destination": "/stats.html" },
     { "source": "/bottlenecks", "destination": "/bottlenecks.html" },
     { "source": "/sales", "destination": "/sales.html" },
-    { "source": "/team", "destination": "/team.html" }
+    { "source": "/crm", "destination": "/crm.html" },
+    { "source": "/campaigns", "destination": "/campaigns.html" },
+    { "source": "/team-stats", "destination": "/team-stats.html" }
   ]
 }

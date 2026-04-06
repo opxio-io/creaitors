@@ -250,7 +250,7 @@ function render(d) {
 var _lastData = null;
 async function loadData() {
   try {
-    var res = await fetch('/api/stats');
+    var res = await fetch('/api/content-stats');
     if (!res.ok) throw new Error('API error');
     _lastData = await res.json();
     try { localStorage.setItem('stats-cache', JSON.stringify(_lastData)); } catch(e) {}
