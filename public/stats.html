@@ -85,6 +85,22 @@
   body.light .card-red .stat-value  { color: #B91C1C; }
   body.light .card-red .stat-accent { background: #DC2626; }
 
+  .card-purple .stat-label  { color: #D8B4FE; }
+  .card-purple .stat-value  { color: #C084FC; }
+  .card-purple .stat-accent { background: #C084FC; }
+
+  .card-pink .stat-label  { color: #F9A8D4; }
+  .card-pink .stat-value  { color: #F472B6; }
+  .card-pink .stat-accent { background: #F472B6; }
+
+  body.light .card-purple .stat-label  { color: #7C3AED; }
+  body.light .card-purple .stat-value  { color: #6D28D9; }
+  body.light .card-purple .stat-accent { background: #7C3AED; }
+
+  body.light .card-pink .stat-label  { color: #DB2777; }
+  body.light .card-pink .stat-value  { color: #BE185D; }
+  body.light .card-pink .stat-accent { background: #DB2777; }
+
   .top-bar {
     display: flex;
     justify-content: flex-end;
@@ -120,9 +136,11 @@
 
   .stat-row {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 14px;
   }
+  @media(max-width:800px){ .stat-row{ grid-template-columns: repeat(2, 1fr); } }
+  @media(max-width:520px){ .stat-row{ grid-template-columns: 1fr; } }
 
   .stat-card {
     border-radius: 14px;
@@ -207,7 +225,21 @@ function render(d) {
   if (d.attentionBreakdown.overdue > 0) sub4Parts.push(d.attentionBreakdown.overdue + ' overdue');
   if (d.attentionBreakdown.revision > 0) sub4Parts.push(d.attentionBreakdown.revision + ' revision');
   if (d.attentionBreakdown.qc > 0) sub4Parts.push(d.attentionBreakdown.qc + ' QC');
-  var sub4 = sub4Parts.length ? sub4Parts.join(', ') : 'All clear ✓';
+  var sub4 = sub4Parts.length ? sub4Parts.join(', ') : 'All clear';
+
+  // Campaign sub-text
+  var c = _campData || {};
+  var campSub = c.remainingDeliverables > 0 ? c.remainingDeliverables + ' remaining' : 'All delivered';
+  var compSub = '';
+  if (c.contentBreakdown) {
+    var cb = c.contentBreakdown;
+    var parts = [];
+    if (cb.videos && cb.videos.planned > 0) parts.push(cb.videos.completed + '/' + cb.videos.planned + ' videos');
+    if (cb.posters && cb.posters.planned > 0) parts.push(cb.posters.completed + '/' + cb.posters.planned + ' posters');
+    if (cb.live && cb.live.planned > 0) parts.push(cb.live.completed + '/' + cb.live.planned + ' live');
+    if (cb.kol && cb.kol.planned > 0) parts.push(cb.kol.completed + '/' + cb.kol.planned + ' KOL');
+    compSub = parts.length ? parts.join(', ') : 'No deliverables';
+  }
 
   document.getElementById('dashboard').innerHTML =
     '<div class="top-bar">' +
@@ -244,25 +276,38 @@ function render(d) {
       '<div class="stat-sub">' + sub4 + '</div>' +
     '</div>' +
 
+    '<div class="stat-card card-purple">' +
+      '<div class="stat-accent"></div>' +
+      '<div class="stat-label">Active Campaigns</div>' +
+      '<div class="stat-value">' + (c.activeCampaigns || 0) + '</div>' +
+      '<div class="stat-sub">' + campSub + '</div>' +
+    '</div>' +
+
+    '<div class="stat-card card-pink">' +
+      '<div class="stat-accent"></div>' +
+      '<div class="stat-label">Avg Completion</div>' +
+      '<div class="stat-value">' + (c.avgCompletion || 0) + '%</div>' +
+      '<div class="stat-sub">' + compSub + '</div>' +
+    '</div>' +
+
     '</div>';
 }
 
 var _lastData = null;
+var _campData = null;
 async function loadData() {
   try {
-    var res = await fetch('/api/content-stats');
-    if (!res.ok) throw new Error('API error');
-    _lastData = await res.json();
-    try { localStorage.setItem('stats-cache', JSON.stringify(_lastData)); } catch(e) {}
+    var [res1, res2] = await Promise.all([
+      fetch('/api/content-stats'),
+      fetch('/api/campaign-stats')
+    ]);
+    if (!res1.ok) throw new Error('Content API error');
+    _lastData = await res1.json();
+    if (res2.ok) _campData = await res2.json();
     render(_lastData);
   } catch(err) {
-    var cached = null;
-    try { cached = JSON.parse(localStorage.getItem('stats-cache')); } catch(e) {}
-    if (cached) { render(cached); }
-    else {
-      document.getElementById('dashboard').innerHTML =
-        '<div class="loading"><div style="font-size:13px;color:#EF4444;font-weight:600;">Could not load data</div></div>';
-    }
+    document.getElementById('dashboard').innerHTML =
+      '<div class="loading"><div style="font-size:13px;color:#EF4444;font-weight:600;">Could not load data</div><div style="font-size:11px;color:#666;margin-top:6px;">' + (err.message || '') + '</div></div>';
   }
 }
 
