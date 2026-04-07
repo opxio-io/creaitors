@@ -9,10 +9,17 @@
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Inter',-apple-system,sans-serif;padding:16px;transition:background 0.3s;background:#191919;color:#e8e8e8;}
 
-.top-bar{display:flex;align-items:center;margin-bottom:14px;gap:8px;}
+.top-bar{display:flex;align-items:center;margin-bottom:14px;gap:8px;flex-wrap:wrap;}
 .top-right{display:flex;gap:6px;margin-left:auto;}
 .ctrl-btn{font-family:'Inter',sans-serif;font-size:11px;font-weight:600;padding:6px 12px;border-radius:6px;cursor:pointer;transition:all 0.2s;letter-spacing:0.3px;background:#2A2A2A;border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.5);}
 .ctrl-btn:hover{border-color:rgba(255,255,255,0.25);color:rgba(255,255,255,0.8);}
+
+/* Tabs */
+.tab-row{display:flex;gap:0;background:#1A1A1A;border:1px solid rgba(255,255,255,0.07);border-radius:11px;padding:4px;margin-bottom:14px;width:fit-content;}
+.tab{font-family:'Inter',sans-serif;font-size:11px;font-weight:700;padding:6px 16px;border-radius:8px;cursor:pointer;border:none;background:transparent;color:rgba(255,255,255,0.35);transition:all 0.2s;letter-spacing:0.1px;user-select:none;}
+.tab:hover{color:rgba(255,255,255,0.65);}
+.tab.active{background:rgba(96,165,250,0.15);color:#60A5FA;}
+.period-label{font-size:11px;color:#505050;margin-bottom:14px;font-weight:500;}
 
 /* Employee cards grid */
 .emp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
@@ -22,7 +29,6 @@ body{font-family:'Inter',-apple-system,sans-serif;padding:16px;transition:backgr
 .emp-card{background:linear-gradient(145deg,#1E1E1E,#252525);border:1px solid rgba(255,255,255,0.06);box-shadow:0 1px 3px rgba(0,0,0,0.3),0 4px 12px rgba(0,0,0,0.15);border-radius:14px;padding:20px;transition:all 0.25s ease;}
 .emp-card:hover{border-color:rgba(255,255,255,0.12);box-shadow:0 2px 6px rgba(0,0,0,0.4),0 8px 20px rgba(0,0,0,0.2);}
 
-/* Card header */
 .emp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
 .emp-name{font-size:14px;font-weight:700;color:#e8e8e8;letter-spacing:-0.2px;}
 .emp-role{font-size:10px;color:#606060;margin-top:2px;}
@@ -31,7 +37,6 @@ body{font-family:'Inter',-apple-system,sans-serif;padding:16px;transition:backgr
 .status-dot.inactive{background:#f87171;}
 .status-dot.leave{background:#fbbf24;box-shadow:0 0 6px rgba(251,191,36,0.5);}
 
-/* Stats mini grid inside each card */
 .stat-mini{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .mini-item{display:flex;flex-direction:column;gap:2px;}
 .mini-val{font-size:24px;font-weight:800;line-height:1;letter-spacing:-1px;}
@@ -44,16 +49,13 @@ body{font-family:'Inter',-apple-system,sans-serif;padding:16px;transition:backgr
 .mini-val.blue{color:#60a5fa;}
 .mini-val.red{color:#f87171;}
 
-/* Alert badges (overdue, due today) */
 .alert-row{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;}
 .alert-badge{font-size:10px;font-weight:600;padding:3px 8px;border-radius:5px;}
 .alert-badge.overdue{background:rgba(248,113,113,0.15);color:#F87171;}
 .alert-badge.due-today{background:rgba(96,165,250,0.15);color:#60A5FA;}
 
-/* Empty state card */
 .emp-empty{font-size:12px;color:#3a3a3a;font-style:italic;}
 
-/* Loading */
 .loading{display:flex;align-items:center;justify-content:center;height:100px;flex-direction:column;gap:10px;}
 .spinner{width:20px;height:20px;border:2px solid rgba(128,128,128,0.15);border-top-color:#666;border-radius:50%;animation:spin 0.8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -68,6 +70,11 @@ body{font-family:'Inter',-apple-system,sans-serif;padding:16px;transition:backgr
 body.light{background:#f5f5f5;color:#111;}
 body.light .ctrl-btn{background:#e8e8e8;border-color:rgba(0,0,0,0.08);color:rgba(0,0,0,0.4);}
 body.light .ctrl-btn:hover{border-color:rgba(0,0,0,0.15);color:rgba(0,0,0,0.6);}
+body.light .tab-row{background:#eaeaea;border-color:rgba(0,0,0,0.08);}
+body.light .tab{color:rgba(0,0,0,0.3);}
+body.light .tab:hover{color:rgba(0,0,0,0.6);}
+body.light .tab.active{background:rgba(37,99,235,0.1);color:#2563EB;}
+body.light .period-label{color:#bbb;}
 body.light .emp-card{background:linear-gradient(145deg,#fff,#F7F8FA);border-color:rgba(0,0,0,0.06);box-shadow:0 1px 3px rgba(0,0,0,0.04),0 4px 12px rgba(0,0,0,0.03);}
 body.light .emp-card:hover{border-color:rgba(0,0,0,0.1);}
 body.light .emp-name{color:#111;}
@@ -93,54 +100,79 @@ body.light .ts{color:#ccc;}
 (function(){try{if(localStorage.getItem('team-stats-theme')==='light')document.body.classList.add('light');}catch(e){}})();
 
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-
 function dotCls(s){return s==='Active'?'active':s==='Inactive'?'inactive':'leave';}
 
-function renderCard(emp){
+var _tab='all';
+var _lastData=null;
+
+function renderCard(emp, tab){
   var s=emp.stats;
+  var w=emp.week||{};
+  var m=emp.month||{};
   var dc=dotCls(emp.status);
   var role=[emp.role,emp.dept].filter(Boolean).join(' · ')||'';
 
-  if(s.total===0){
-    return '<div class="emp-card">'+
-      '<div class="emp-header"><div><div class="emp-name">'+esc(emp.name)+'</div>'+(role?'<div class="emp-role">'+esc(role)+'</div>':'')+'</div><div class="status-dot '+dc+'"></div></div>'+
-      '<div class="emp-empty">No tasks assigned yet</div>'+
-      '</div>';
+  var header='<div class="emp-header"><div><div class="emp-name">'+esc(emp.name)+'</div>'+(role?'<div class="emp-role">'+esc(role)+'</div>':'')+'</div><div class="status-dot '+dc+'"></div></div>';
+
+  if(tab==='all'){
+    if(s.total===0) return '<div class="emp-card">'+header+'<div class="emp-empty">No tasks assigned yet</div></div>';
+    var alerts='';
+    if(s.overdue>0||s.dueToday>0){
+      alerts='<div class="alert-row">';
+      if(s.overdue>0) alerts+='<span class="alert-badge overdue">'+s.overdue+' overdue</span>';
+      if(s.dueToday>0) alerts+='<span class="alert-badge due-today">'+s.dueToday+' due today</span>';
+      alerts+='</div>';
+    }
+    return '<div class="emp-card">'+header+
+      '<div class="stat-mini">'+
+        '<div class="mini-item"><div class="mini-val green">'+s.done+'</div><div class="mini-label">Done</div></div>'+
+        '<div class="mini-item"><div class="mini-val teal">'+s.inProgress+'</div><div class="mini-label">In Progress</div></div>'+
+        '<div class="mini-item"><div class="mini-val amber">'+s.pendingQC+'</div><div class="mini-label">Pending QC</div></div>'+
+        '<div class="mini-item"><div class="mini-val purple">'+s.totalHrs+'h</div><div class="mini-label">Hours</div></div>'+
+      '</div>'+alerts+'</div>';
   }
 
-  var alerts='';
-  if(s.overdue>0||s.dueToday>0){
-    alerts='<div class="alert-row">';
-    if(s.overdue>0) alerts+='<span class="alert-badge overdue">'+s.overdue+' overdue</span>';
-    if(s.dueToday>0) alerts+='<span class="alert-badge due-today">'+s.dueToday+' due today</span>';
-    alerts+='</div>';
-  }
+  // Week or Month view
+  var d = tab==='week' ? w : m;
+  var hasActivity = (d.done||0)+(d.started||0)+(d.due||0)>0;
+  if(!hasActivity) return '<div class="emp-card">'+header+'<div class="emp-empty">No activity this '+(tab==='week'?'week':'month')+'</div></div>';
 
-  return '<div class="emp-card">'+
-    '<div class="emp-header"><div><div class="emp-name">'+esc(emp.name)+'</div>'+(role?'<div class="emp-role">'+esc(role)+'</div>':'')+'</div><div class="status-dot '+dc+'"></div></div>'+
+  return '<div class="emp-card">'+header+
     '<div class="stat-mini">'+
-      '<div class="mini-item"><div class="mini-val green">'+s.done+'</div><div class="mini-label">Done</div></div>'+
-      '<div class="mini-item"><div class="mini-val teal">'+s.inProgress+'</div><div class="mini-label">In Progress</div></div>'+
-      '<div class="mini-item"><div class="mini-val amber">'+s.pendingQC+'</div><div class="mini-label">Pending QC</div></div>'+
-      '<div class="mini-item"><div class="mini-val purple">'+s.totalHrs+'h</div><div class="mini-label">Hours</div></div>'+
-    '</div>'+
-    alerts+
-    '</div>';
+      '<div class="mini-item"><div class="mini-val green">'+(d.done||0)+'</div><div class="mini-label">Completed</div></div>'+
+      '<div class="mini-item"><div class="mini-val teal">'+(d.started||0)+'</div><div class="mini-label">Started</div></div>'+
+      '<div class="mini-item"><div class="mini-val blue">'+(d.due||0)+'</div><div class="mini-label">Due</div></div>'+
+      '<div class="mini-item"><div class="mini-val purple">'+(d.hrs||0)+'h</div><div class="mini-label">Hours</div></div>'+
+    '</div></div>';
 }
 
 function render(data){
+  if(!data||!data.employees) return;
   var isLight=document.body.classList.contains('light');
-  if(!data.employees||!data.employees.length){
+
+  if(!data.employees.length){
     document.getElementById('dashboard').innerHTML='<div class="loading" style="color:#f87171;">Share Employee Hub with the integration to see stats.</div>';
     return;
   }
-  var html='<div class="top-bar"><div class="top-right">'+
-    '<button class="ctrl-btn" onclick="toggleMode()">'+(isLight?'Dark mode':'Light mode')+'</button>'+
-    '<button class="ctrl-btn" onclick="loadData()">Refresh</button>'+
-    '</div></div>'+
-    '<div class="emp-grid">';
+
+  var html='<div class="top-bar">'+
+    '<div class="tab-row">'+
+      '<button class="tab'+(_tab==='all'?' active':'')+'" onclick="switchTab(\'all\')">All Time</button>'+
+      '<button class="tab'+(_tab==='week'?' active':'')+'" onclick="switchTab(\'week\')">This Week</button>'+
+      '<button class="tab'+(_tab==='month'?' active':'')+'" onclick="switchTab(\'month\')">This Month</button>'+
+    '</div>'+
+    '<div class="top-right">'+
+      '<button class="ctrl-btn" onclick="toggleMode()">'+(isLight?'Dark mode':'Light mode')+'</button>'+
+      '<button class="ctrl-btn" onclick="loadData()">Refresh</button>'+
+    '</div></div>';
+
+  // Period label
+  if(_tab==='week' && data.weekLabel) html+='<div class="period-label">'+esc(data.weekLabel)+'</div>';
+  if(_tab==='month' && data.monthLabel) html+='<div class="period-label">'+esc(data.monthLabel)+'</div>';
+
+  html+='<div class="emp-grid">';
   for(var i=0;i<data.employees.length;i++){
-    html+=renderCard(data.employees[i]);
+    html+=renderCard(data.employees[i], _tab);
   }
   html+='</div>';
   document.getElementById('dashboard').innerHTML=html;
@@ -151,7 +183,8 @@ function render(data){
   }
 }
 
-var _lastData=null;
+window.switchTab=function(tab){_tab=tab;render(_lastData);};
+
 function _lbarOn(){var b=document.getElementById('lbar');if(b)b.classList.add('on');}
 function _lbarOff(){var b=document.getElementById('lbar');if(b)b.classList.remove('on');}
 

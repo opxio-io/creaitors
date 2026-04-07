@@ -92,9 +92,34 @@ module.exports = async function handler(req, res) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // Week boundaries (Monday to Sunday)
+    const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon...
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() + mondayOffset);
+    const weekStartStr = weekStart.toISOString().slice(0, 10);
+
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    const weekEndStr = weekEnd.toISOString().slice(0, 10);
+
+    // Month boundaries
+    const monthStart = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+    const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const monthEnd = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+    const emptyStats = () => ({
+      done: 0, inProgress: 0, pendingQC: 0, reviewNeeded: 0,
+      notStarted: 0, overdue: 0, dueToday: 0, totalMins: 0, total: 0,
+    });
+
     const statsMap = {};
     [...empIdSet].forEach(id => {
-      statsMap[id] = { done: 0, inProgress: 0, pendingQC: 0, reviewNeeded: 0, notStarted: 0, overdue: 0, dueToday: 0, totalMins: 0, total: 0 };
+      statsMap[id] = {
+        all: emptyStats(),
+        week: { done: 0, started: 0, total: 0, mins: 0 },
+        month: { done: 0, started: 0, total: 0, mins: 0 },
+      };
     });
 
     allTasks.forEach(task => {
@@ -102,11 +127,19 @@ module.exports = async function handler(req, res) {
       const taskStatus = tp['Task Status']?.status?.name || '';
       const dueRaw     = tp['Task Due']?.date?.start || null;
       const accMins    = tp['Accumulated Mins']?.number || 0;
+      const doneRaw    = tp['Task Done On']?.date?.start || null;
+      const startedRaw = tp['Task Started On']?.date?.start || null;
       const assigned   = tp['Assigned To']?.relation || [];
+
+      const doneDate    = doneRaw ? doneRaw.slice(0, 10) : null;
+      const startedDate = startedRaw ? startedRaw.slice(0, 10) : null;
 
       assigned.forEach(({ id: empId }) => {
         if (!statsMap[empId]) return;
-        const s = statsMap[empId];
+        const s = statsMap[empId].all;
+        const w = statsMap[empId].week;
+        const m = statsMap[empId].month;
+
         s.total++;
         s.totalMins += accMins;
 
@@ -121,20 +154,69 @@ module.exports = async function handler(req, res) {
           if      (due < today)                      s.overdue++;
           else if (due.getTime() === today.getTime()) s.dueToday++;
         }
+
+        // Weekly stats (tasks done or started this week)
+        if (doneDate && doneDate >= weekStartStr && doneDate <= weekEndStr) {
+          w.done++;
+          w.mins += accMins;
+        }
+        if (startedDate && startedDate >= weekStartStr && startedDate <= weekEndStr) {
+          w.started++;
+        }
+        // Count tasks due this week as "this week's total"
+        if (dueRaw) {
+          const dueStr = dueRaw.slice(0, 10);
+          if (dueStr >= weekStartStr && dueStr <= weekEndStr) w.total++;
+        }
+
+        // Monthly stats
+        if (doneDate && doneDate >= monthStart && doneDate <= monthEnd) {
+          m.done++;
+          m.mins += accMins;
+        }
+        if (startedDate && startedDate >= monthStart && startedDate <= monthEnd) {
+          m.started++;
+        }
+        if (dueRaw) {
+          const dueStr = dueRaw.slice(0, 10);
+          if (dueStr >= monthStart && dueStr <= monthEnd) m.total++;
+        }
       });
     });
 
     // ── 5. Build result array ──────────────────────────────────────
     const employees = [...empIdSet].map(id => {
-      const s = statsMap[id];
+      const s = statsMap[id].all;
+      const w = statsMap[id].week;
+      const m = statsMap[id].month;
       return {
         id,
         ...empMap[id],
-        stats: { ...s, totalHrs: Math.round((s.totalMins / 60) * 10) / 10 },
+        stats: {
+          ...s,
+          totalHrs: Math.round((s.totalMins / 60) * 10) / 10,
+        },
+        week: {
+          done: w.done,
+          started: w.started,
+          due: w.total,
+          hrs: Math.round((w.mins / 60) * 10) / 10,
+        },
+        month: {
+          done: m.done,
+          started: m.started,
+          due: m.total,
+          hrs: Math.round((m.mins / 60) * 10) / 10,
+        },
       };
     }).sort((a, b) => a.name.localeCompare(b.name));
 
-    return res.status(200).json({ employees, generatedAt: new Date().toISOString() });
+    return res.status(200).json({
+      employees,
+      weekLabel: `${weekStartStr} – ${weekEndStr}`,
+      monthLabel: `${today.toLocaleString('en', { month: 'long' })} ${today.getFullYear()}`,
+      generatedAt: new Date().toISOString(),
+    });
 
   } catch (err) {
     return res.status(500).json({ error: err.message });
