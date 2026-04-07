@@ -102,7 +102,11 @@ module.exports = async function handler(req, res) {
     const created = [];
     const errors  = [];
 
-    for (const month of months) {
+    const totalMonths = months.length;
+
+    for (let i = 0; i < months.length; i++) {
+      const month   = months[i];
+      const payNum  = i + 1;
       const label   = `${MONTH_NAMES[month.getMonth()]} ${month.getFullYear()}`;
       const rowName = `${clientName} – ${label}`;
       const dateStr = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}-01`;
@@ -122,6 +126,12 @@ module.exports = async function handler(req, res) {
               },
               'Client': {
                 relation: [{ id: clientPageId }],
+              },
+              'Payment #': {
+                number: payNum,
+              },
+              'Total Months': {
+                number: totalMonths,
               },
               'Status': {
                 status: { name: 'Not Paid' },
