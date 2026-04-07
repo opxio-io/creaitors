@@ -59,7 +59,7 @@ module.exports = async function handler(req, res) {
     ]);
 
     // ── Content stats ──────────────────────────────────────────
-    const ACTIVE_STATUSES = ['Pre-Production', 'In-Production', 'Revision Needed', 'Final QC Review', 'Scripting', 'Recording', 'Editing'];
+    const ACTIVE_STATUSES = ['Pre-Production', 'In Production', 'Revision Needed', 'Final QC Review', 'Scripting', 'Recording', 'Editing'];
 
     let contentInMotion   = 0;
     let contentRevision   = 0;
