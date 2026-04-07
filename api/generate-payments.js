@@ -20,6 +20,11 @@ module.exports = async function handler(req, res) {
     return res.status(200).end();
   }
 
+  // GET = debug endpoint to check if function is alive
+  if (req.method === 'GET') {
+    return res.status(200).json({ status: 'ok', method: 'GET', note: 'Use POST with page_id to generate payments.' });
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed. Use POST.' });
   }
@@ -36,19 +41,22 @@ module.exports = async function handler(req, res) {
       'Content-Type': 'application/json',
     };
 
-    // Extract client page ID from request body
-    // Notion button webhook sends: { data: { id: "page-id", object: "page" } }
-    // Direct test call can send: { page_id: "..." }
+    // Extract client page ID — try every known Notion webhook format
     const body = req.body || {};
     const clientPageId = (
       body.page_id ||
       (body.data && body.data.id) ||
-      (body.source && body.source.page_id)
+      (body.data && body.data.page_id) ||
+      (body.source && body.source.page_id) ||
+      body.id
     );
 
     if (!clientPageId) {
+      // Return the raw body so we can debug what Notion is actually sending
       return res.status(400).json({
-        error: 'Missing page_id. Expected { page_id: "..." } or Notion webhook format.',
+        error: 'Could not find page_id in request body.',
+        receivedBody: body,
+        receivedKeys: Object.keys(body),
       });
     }
 
