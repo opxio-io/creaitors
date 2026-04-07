@@ -123,6 +123,15 @@ module.exports = async function handler(req, res) {
               'Client': {
                 relation: [{ id: clientPageId }],
               },
+              'Status': {
+                status: { name: 'Not Paid' },
+              },
+              'Retainer Payment Status': {
+                status: { name: 'Not Paid' },
+              },
+              'KOL Payment Status': {
+                status: { name: 'Not Paid' },
+              },
             },
           }),
         });
