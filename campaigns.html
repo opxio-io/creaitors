@@ -160,6 +160,7 @@ function pctColor(pct) {
 function render(s, taskData) {
   var isLight = document.body.classList.contains('light');
   var remaining = s.remainingDeliverables || 0;
+  var cb = s.contentBreakdown || {};
   var t = taskData || {};
   var tb = t.tasksBreakdown || {};
   var ab = t.attentionBreakdown || {};
@@ -172,7 +173,7 @@ function render(s, taskData) {
   // --- Stat cards ---
   html += '<div class="stat-row">' +
     '<div class="stat-card card card-blue"><div class="s-accent"></div><div class="s-label">Active Campaigns</div><div class="s-value">' + s.activeCampaigns + '</div><div class="sub-text">Currently running</div></div>' +
-    '<div class="stat-card card card-amber"><div class="s-accent"></div><div class="s-label">Content In Motion</div><div class="s-value">' + s.totalDeliverables + '</div><div class="sub-text">Total planned deliverables</div></div>' +
+    '<div class="stat-card card card-amber"><div class="s-accent"></div><div class="s-label">Content In Motion</div><div class="s-value">' + s.totalDeliverables + '</div><div class="sub-text">🎬 ' + (cb.videos?cb.videos.planned:0) + ' Videos · 🖼️ ' + (cb.posters?cb.posters.planned:0) + ' Posters · 📺 ' + (cb.live?cb.live.planned:0) + ' Live · 🎯 ' + (cb.kol?cb.kol.planned:0) + ' KOL</div></div>' +
     '<div class="stat-card card card-green"><div class="s-accent"></div><div class="s-label">Completed</div><div class="s-value">' + s.completedDeliverables + '</div><div class="sub-text">' + remaining + ' remaining</div></div>' +
     '<div class="stat-card card card-teal"><div class="s-accent"></div><div class="s-label">Avg Completion</div><div class="s-value">' + s.avgCompletion + '%</div><div class="sub-text">Across active campaigns</div></div>' +
     '</div>';
@@ -182,7 +183,6 @@ function render(s, taskData) {
 
   // Left: Content Breakdown
   html += '<div class="detail-card card"><div class="detail-title">Content Breakdown</div>';
-  var cb = s.contentBreakdown || {};
   var types = [
     { key: 'videos', label: 'Videos', color: PROG_COLORS.videos },
     { key: 'posters', label: 'Posters', color: PROG_COLORS.posters },
