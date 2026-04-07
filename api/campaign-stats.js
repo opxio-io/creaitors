@@ -84,6 +84,11 @@ module.exports = async function handler(req, res) {
     let livePlanned = 0, liveCompleted = 0;
     let kolPlanned = 0, kolCompleted = 0;
 
+    // Live session metrics (from Weekly Sessions rollups)
+    let totalLiveGMV = 0, totalLiveHours = 0, totalLiveOrders = 0;
+    let totalLiveSessions = 0;
+    let totalTikTokSales = 0, totalShopeeSales = 0;
+
     // Per-campaign detail for the breakdown
     const campaignDetails = [];
 
@@ -125,6 +130,14 @@ module.exports = async function handler(req, res) {
       livePlanned += live;       liveCompleted += liveDone;
       kolPlanned += kolPosts;    kolCompleted += kolDone;
 
+      // Aggregate live session metrics from Monthly rollups
+      totalLiveGMV      += getRollupNumber(props['Monthly Live GMV']);
+      totalLiveHours    += getRollupNumber(props['Monthly Live Hours']);
+      totalLiveOrders   += getRollupNumber(props['Monthly Live Orders']);
+      totalLiveSessions += getRollupNumber(props['Monthly Live Sessions']);
+      totalTikTokSales  += getRollupNumber(props['Monthly TikTok Sales']);
+      totalShopeeSales  += getRollupNumber(props['Monthly Shopee Sales']);
+
       if (planned > 0) {
         completionRates.push(Math.round((done / planned) * 100));
       }
@@ -159,6 +172,14 @@ module.exports = async function handler(req, res) {
         posters: { planned: postersPlanned, completed: postersCompleted },
         live:    { planned: livePlanned, completed: liveCompleted },
         kol:     { planned: kolPlanned, completed: kolCompleted },
+      },
+      liveSessionMetrics: {
+        totalGMV: totalLiveGMV,
+        totalHours: totalLiveHours,
+        totalOrders: totalLiveOrders,
+        totalSessions: totalLiveSessions,
+        tikTokSales: totalTikTokSales,
+        shopeeSales: totalShopeeSales,
       },
       campaignDetails,
       typeBreakdown,
