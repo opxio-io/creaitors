@@ -66,6 +66,21 @@ body{font-family:'Inter',-apple-system,sans-serif;padding:16px;transition:backgr
 
 .empty-msg{font-size:12px;color:#4B5563;font-style:italic;padding:10px 0;}
 
+/* Task Tracker */
+.task-section{margin-top:12px;}
+.task-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.task-mini{padding:14px 16px;text-align:center;}
+.task-mini .tm-value{font-size:24px;font-weight:800;letter-spacing:-1px;line-height:1;}
+.task-mini .tm-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.7px;margin-top:6px;}
+.task-status-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.task-status-row:last-child{border-bottom:none;}
+.ts-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.ts-label{font-size:12px;font-weight:500;color:rgba(255,255,255,0.6);flex:1;}
+.ts-count{font-size:13px;font-weight:700;color:#e8e8e8;min-width:24px;text-align:right;}
+.ts-bar-wrap{width:50px;flex-shrink:0;}
+.ts-bar{background:rgba(255,255,255,0.06);border-radius:3px;height:5px;overflow:hidden;}
+.ts-bar-fill{height:100%;border-radius:3px;}
+
 /* Loading */
 .loading{display:flex;align-items:center;justify-content:center;height:100px;flex-direction:column;gap:10px;}
 .spinner{width:20px;height:20px;border:2px solid rgba(128,128,128,0.15);border-top-color:#666;border-radius:50%;animation:spin 0.8s linear infinite;}
@@ -100,6 +115,10 @@ body.light .camp-name{color:#111;}
 body.light .camp-type{background:rgba(0,0,0,0.06);color:#777;}
 body.light .camp-item{border-bottom-color:rgba(0,0,0,0.05);}
 body.light .camp-bar{background:rgba(0,0,0,0.07);}
+body.light .task-status-row{border-bottom-color:rgba(0,0,0,0.05);}
+body.light .ts-label{color:rgba(0,0,0,0.5);}
+body.light .ts-count{color:#111;}
+body.light .ts-bar{background:rgba(0,0,0,0.07);}
 
 @media(max-width:768px){
 body{padding:10px;}
@@ -138,9 +157,12 @@ function pctColor(pct) {
   return '#F87171';
 }
 
-function render(s) {
+function render(s, taskData) {
   var isLight = document.body.classList.contains('light');
   var remaining = s.remainingDeliverables || 0;
+  var t = taskData || {};
+  var tb = t.tasksBreakdown || {};
+  var ab = t.attentionBreakdown || {};
 
   var html = '<div class="top-bar"><div class="top-right">' +
     '<button class="toggle-btn" onclick="toggleMode()">' + (isLight ? 'Dark mode' : 'Light mode') + '</button>' +
@@ -158,7 +180,7 @@ function render(s) {
   // --- Detail row ---
   html += '<div class="detail-row">';
 
-  // Left: Content Breakdown (per deliverable type with progress bars)
+  // Left: Content Breakdown
   html += '<div class="detail-card card"><div class="detail-title">Content Breakdown</div>';
   var cb = s.contentBreakdown || {};
   var types = [
@@ -168,19 +190,19 @@ function render(s) {
     { key: 'kol', label: 'KOL Posts', color: PROG_COLORS.kol },
   ];
   for (var i = 0; i < types.length; i++) {
-    var t = types[i];
-    var d = cb[t.key] || { planned: 0, completed: 0 };
+    var tp = types[i];
+    var d = cb[tp.key] || { planned: 0, completed: 0 };
     var pct = d.planned > 0 ? Math.round((d.completed / d.planned) * 100) : 0;
     var rem = d.planned - d.completed;
     html += '<div class="prog-row">' +
-      '<div class="prog-header"><span class="prog-label">' + t.label + '</span><span class="prog-count">' + d.completed + ' / ' + d.planned + '</span></div>' +
-      '<div class="prog-bar"><div class="prog-fill" style="width:' + Math.max(pct > 0 ? 4 : 0, pct) + '%;background:' + t.color + ';"></div></div>' +
+      '<div class="prog-header"><span class="prog-label">' + tp.label + '</span><span class="prog-count">' + d.completed + ' / ' + d.planned + '</span></div>' +
+      '<div class="prog-bar"><div class="prog-fill" style="width:' + Math.max(pct > 0 ? 4 : 0, pct) + '%;background:' + tp.color + ';"></div></div>' +
       (rem > 0 ? '<div class="prog-sub">' + rem + ' remaining</div>' : '<div class="prog-sub" style="color:#34D399;">All done</div>') +
       '</div>';
   }
   html += '</div>';
 
-  // Right: Campaign Progress (per-campaign completion)
+  // Right: Campaign Progress
   html += '<div class="detail-card card"><div class="detail-title">Campaign Progress</div>';
   if (s.campaignDetails && s.campaignDetails.length > 0) {
     html += '<div class="camp-scroll">';
@@ -199,24 +221,66 @@ function render(s) {
     html += '<div class="empty-msg">No active campaigns</div>';
   }
   html += '</div>';
-
   html += '</div>';
+
+  // --- Task Tracker ---
+  if (taskData) {
+    var totalTasks = t.tasksTotal || 0;
+    var overdue = ab.overdue || 0;
+    var dueWeek = t.dueThisWeek || 0;
+
+    html += '<div class="task-section">';
+
+    // Mini stat cards
+    html += '<div class="task-grid">' +
+      '<div class="task-mini card card-purple"><div class="tm-value">' + totalTasks + '</div><div class="tm-label" style="color:#C4B5FD;">Active Tasks</div></div>' +
+      '<div class="task-mini card card-amber"><div class="tm-value">' + dueWeek + '</div><div class="tm-label" style="color:#FCD34D;">Due This Week</div></div>' +
+      '<div class="task-mini card ' + (overdue > 0 ? 'card-red' : 'card-green') + '"><div class="tm-value">' + overdue + '</div><div class="tm-label" style="color:' + (overdue > 0 ? '#FCA5A5' : '#6EE7B7') + ';">' + (overdue > 0 ? 'Overdue' : 'On Track') + '</div></div>' +
+      '</div>';
+
+    // Status breakdown
+    var statuses = [
+      { label: 'In Progress', count: tb.inProgress || 0, color: '#60A5FA' },
+      { label: 'Waiting', count: tb.waiting || 0, color: '#FBBF24' },
+      { label: 'QC Review', count: tb.qc || 0, color: '#A78BFA' },
+      { label: 'Revision Needed', count: tb.revision || 0, color: '#F87171' },
+    ];
+
+    html += '<div class="detail-card card" style="margin-top:0;"><div class="detail-title">Task Status Breakdown</div>';
+    for (var k = 0; k < statuses.length; k++) {
+      var st = statuses[k];
+      var barPct = totalTasks > 0 ? Math.round((st.count / totalTasks) * 100) : 0;
+      html += '<div class="task-status-row">' +
+        '<div class="ts-dot" style="background:' + st.color + ';"></div>' +
+        '<span class="ts-label">' + st.label + '</span>' +
+        '<div class="ts-bar-wrap"><div class="ts-bar"><div class="ts-bar-fill" style="width:' + Math.max(barPct > 0 ? 8 : 0, barPct) + '%;background:' + st.color + ';"></div></div></div>' +
+        '<span class="ts-count" style="color:' + st.color + ';">' + st.count + '</span>' +
+        '</div>';
+    }
+    html += '</div></div>';
+  }
+
   document.getElementById('dashboard').innerHTML = html;
 }
 
-var _lastData = null;
+var _lastData = null, _taskData = null;
 function _lbarOn(){var b=document.getElementById('lbar');if(b)b.classList.add('on');}
 function _lbarOff(){var b=document.getElementById('lbar');if(b)b.classList.remove('on');}
 
 async function loadData() {
   _lbarOn();
   try {
-    var res = await fetch('/api/campaign-stats');
-    if (!res.ok) throw new Error('API error');
-    _lastData = await res.json();
+    var [campRes, taskRes] = await Promise.all([
+      fetch('/api/campaign-stats'),
+      fetch('/api/content-stats').catch(function() { return null; })
+    ]);
+    if (!campRes.ok) throw new Error('API error');
+    _lastData = await campRes.json();
+    if (taskRes && taskRes.ok) _taskData = await taskRes.json();
     _lbarOff();
-    render(_lastData);
+    render(_lastData, _taskData);
   } catch(err) {
+    _lbarOff();
     document.getElementById('dashboard').innerHTML = '<div class="loading"><div style="font-size:13px;color:#EF4444;font-weight:600;">Could not load data</div><div style="font-size:11px;color:#888;margin-top:6px;">' + esc(err.message) + '</div></div>';
   }
 }
@@ -224,7 +288,7 @@ async function loadData() {
 window.toggleMode = function() {
   var isLight = document.body.classList.toggle('light');
   try{localStorage.setItem('campaign-stats-theme', isLight ? 'light' : 'dark');}catch(e){}
-  if (_lastData) { _lbarOff(); render(_lastData); }
+  if (_lastData) { _lbarOff(); render(_lastData, _taskData); }
 };
 
 loadData();
