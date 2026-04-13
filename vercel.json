@@ -1,10 +1,16 @@
 {
   "version": 2,
+  "redirects": [
+    {
+      "source": "/crm",
+      "destination": "https://dashboard.opxio.io/widgets/revenue/crm.html?token=1cb5655d91011dba1a3d7a5b8453ab99740961c1af279ade356fbb849188683c",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     { "source": "/content-stats", "destination": "/stats.html" },
     { "source": "/bottlenecks", "destination": "/bottlenecks.html" },
     { "source": "/sales", "destination": "/sales.html" },
-    { "source": "/crm", "destination": "/crm.html" },
     { "source": "/campaigns", "destination": "/campaigns.html" },
     { "source": "/team-stats", "destination": "/team-stats.html" }
   ]
