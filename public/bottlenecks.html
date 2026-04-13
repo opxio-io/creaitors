@@ -51,20 +51,15 @@ body.light .btn:hover{border-color:var(--gb);color:var(--g);}
 .chip-value{font-size:26px;font-weight:900;letter-spacing:-1.5px;line-height:1;}
 .chip-label{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;margin-top:6px;opacity:.7;}
 
-/* Chip color variants */
-.chip-red .chip-value{color:#F87171;} .chip-red .chip-dot,.chip-red::before{background:#F87171;}
-.chip-orange .chip-value{color:#FB923C;} .chip-orange .chip-dot,.chip-orange::before{background:#FB923C;}
-.chip-yellow .chip-value{color:#FBBF24;} .chip-yellow .chip-dot,.chip-yellow::before{background:#FBBF24;}
-.chip-blue .chip-value{color:#60A5FA;} .chip-blue .chip-dot,.chip-blue::before{background:#60A5FA;}
-.chip-teal .chip-value{color:#2DD4BF;} .chip-teal .chip-dot,.chip-teal::before{background:#2DD4BF;}
-.chip-red .chip-label{color:#F87171;} .chip-orange .chip-label{color:#FB923C;}
-.chip-yellow .chip-label{color:#FBBF24;} .chip-blue .chip-label{color:#60A5FA;} .chip-teal .chip-label{color:#2DD4BF;}
-
-body.light .chip-red .chip-value,.chip-red .chip-label{color:#DC2626;}
-body.light .chip-orange .chip-value,.chip-orange .chip-label{color:#EA580C;}
-body.light .chip-yellow .chip-value,.chip-yellow .chip-label{color:#B45309;}
-body.light .chip-blue .chip-value,.chip-blue .chip-label{color:#1D4ED8;}
-body.light .chip-teal .chip-value,.chip-teal .chip-label{color:#0F766E;}
+/* Chip color variants — all numbers lime, dots keep accent colors */
+.chip-value{color:var(--g);}
+.chip-label{color:rgba(255,255,255,.45);}
+body.light .chip-label{color:rgba(0,0,0,.4);}
+.chip-red .chip-dot,.chip-red::before{background:#F87171;}
+.chip-orange .chip-dot,.chip-orange::before{background:#FB923C;}
+.chip-yellow .chip-dot,.chip-yellow::before{background:#FBBF24;}
+.chip-blue .chip-dot,.chip-blue::before{background:#60A5FA;}
+.chip-teal .chip-dot,.chip-teal::before{background:#2DD4BF;}
 
 /* Section cards */
 .section-card{padding:20px 22px;margin-bottom:12px;}
@@ -198,7 +193,7 @@ function render(data){
   var total=data.total||0;
 
   var html='<div class="top-bar">'
-    +'<div><p class="eyebrow">Creaitors &middot; Ops</p><h1 class="h-title">Bottlenecks</h1></div>'
+    +'<div><p class="eyebrow">Opxio &middot; Ops</p><h1 class="h-title">Bottlenecks</h1></div>'
     +'<div class="top-right">'
     +(total>0?'<span class="total-badge">'+total+'</span>':'<span class="total-badge none">All clear</span>')
     +'<span class="ts" id="ts"></span>'
