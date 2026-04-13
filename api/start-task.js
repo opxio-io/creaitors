@@ -2,7 +2,8 @@
 // Sets Task Started On = now, clears Task Done On + Duration Display, Task Status = In Progress
 // If current Task Status is "Review Needed" → keeps Accumulated Mins (continuation after QC rejection)
 // Otherwise → resets Accumulated Mins to 0 (fresh start)
-// NEW: If the task is "Content Planning", also sets the parent Content's "Content Status" to "In Production"
+// If task has Content Production linked → sets Content Status = "In Production"
+// If Content Production has Related Campaign → sets Campaign Status = "Active"
 // Environment variables: NOTION_API_KEY
 
 module.exports = async function handler(req, res) {
@@ -23,7 +24,6 @@ module.exports = async function handler(req, res) {
       'Content-Type': 'application/json',
     };
 
-    // Extract task page ID from Notion button webhook payload
     const body = req.body || {};
     const taskPageId = (
       body.page_id ||
@@ -35,7 +35,7 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'Missing page_id in request body.' });
     }
 
-    // Fetch current task page to read Task Status and Accumulated Mins
+    // Fetch current task page
     const taskRes = await fetch(`https://api.notion.com/v1/pages/${taskPageId}`, { headers });
     if (!taskRes.ok) throw new Error(`Failed to fetch task: ${await taskRes.text()}`);
     const taskPage = await taskRes.json();
@@ -44,38 +44,39 @@ module.exports = async function handler(req, res) {
     const taskName = props['Task List']?.title?.map(t => t.plain_text).join('') || '';
     const currentStatus = props['Task Status']?.status?.name || '';
     const existingAccumulatedMins = props['Accumulated Mins']?.number || 0;
+    const contentRelation = props['Content Production']?.relation || [];
 
-    // If restarting after QC rejection, preserve accumulated time; otherwise fresh start
     const isQcRejection = currentStatus === 'Review Needed';
     const newAccumulatedMins = isQcRejection ? existingAccumulatedMins : 0;
 
     const now = new Date().toISOString();
 
-    // Patch: stamp Task Started On, clear Task Done On + Duration Display, set In Progress
-    // Reset or preserve Accumulated Mins based on whether this is a QC rejection restart
+    // Step 1: Update task status
     const updateRes = await fetch(`https://api.notion.com/v1/pages/${taskPageId}`, {
       method: 'PATCH',
       headers,
       body: JSON.stringify({
         properties: {
-          'Task Started On':   { date: { start: now } },
-          'Task Done On':      { date: null },
-          'Duration Display':  { rich_text: [] },
-          'Task Status':       { status: { name: 'In progress' } },
-          'Accumulated Mins':  { number: newAccumulatedMins },
+          'Task Started On':  { date: { start: now } },
+          'Task Done On':     { date: null },
+          'Duration Display': { rich_text: [] },
+          'Task Status':      { status: { name: 'In progress' } },
+          'Accumulated Mins': { number: newAccumulatedMins },
         },
       }),
     });
-
     if (!updateRes.ok) throw new Error(`Failed to start task: ${await updateRes.text()}`);
 
-    // --- Content Planning → In Production ---
-    // Only when "Content Planning" is started, update the parent content's status
+    // Step 2: If Content Production is linked, set Content Status = In Production
+    // then check for Related Campaign → set Campaign Status = Active
     let contentStatusUpdated = false;
-    if (taskName === 'Content Planning') {
-      const contentRelation = props['Content Production']?.relation;
-      if (contentRelation && contentRelation.length > 0) {
-        const contentPageId = contentRelation[0].id;
+    let campaignStatusUpdated = false;
+
+    if (contentRelation.length > 0) {
+      const contentPageId = contentRelation[0].id;
+
+      // Set Content Production to In Production
+      try {
         const contentUpdateRes = await fetch(`https://api.notion.com/v1/pages/${contentPageId}`, {
           method: 'PATCH',
           headers,
@@ -85,10 +86,36 @@ module.exports = async function handler(req, res) {
             },
           }),
         });
-        if (contentUpdateRes.ok) {
-          contentStatusUpdated = true;
+        if (contentUpdateRes.ok) contentStatusUpdated = true;
+      } catch (e) {
+        console.error('Content status update failed (non-fatal):', e.message);
+      }
+
+      // Fetch Content Production page to get Related Campaign
+      try {
+        const contentPageRes = await fetch(`https://api.notion.com/v1/pages/${contentPageId}`, { headers });
+        if (contentPageRes.ok) {
+          const contentPage = await contentPageRes.json();
+          const campaignRelation = contentPage.properties['Related Campaign']?.relation || [];
+
+          if (campaignRelation.length > 0) {
+            const campaignPageId = campaignRelation[0].id;
+
+            // Set Campaign Status = Active
+            const campaignUpdateRes = await fetch(`https://api.notion.com/v1/pages/${campaignPageId}`, {
+              method: 'PATCH',
+              headers,
+              body: JSON.stringify({
+                properties: {
+                  'Campaign Status': { status: { name: 'Active' } },
+                },
+              }),
+            });
+            if (campaignUpdateRes.ok) campaignStatusUpdated = true;
+          }
         }
-        // Non-fatal: if this fails, the task itself was still started successfully
+      } catch (e) {
+        console.error('Campaign status update failed (non-fatal):', e.message);
       }
     }
 
@@ -102,6 +129,7 @@ module.exports = async function handler(req, res) {
       accumulatedMins: newAccumulatedMins,
       isQcRejection,
       contentStatusUpdated,
+      campaignStatusUpdated,
     });
 
   } catch (err) {
