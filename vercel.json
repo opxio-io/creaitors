@@ -3,7 +3,7 @@
   "redirects": [
     {
       "source": "/crm",
-      "destination": "https://dashboard.opxio.io/widgets/revenue/crm.html?token=1cb5655d91011dba1a3d7a5b8453ab99740961c1af279ade356fbb849188683c",
+      "destination": "https://dashboard.opxio.io/revenue/crm?token=1cb5655d91011dba1a3d7a5b8453ab99740961c1af279ade356fbb849188683c",
       "permanent": false
     }
   ],
