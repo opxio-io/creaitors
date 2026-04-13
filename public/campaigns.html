@@ -44,23 +44,19 @@ body.light .btn:hover{border-color:var(--gb);color:var(--g);}
 .s-sub{font-size:10px;font-weight:500;color:rgba(255,255,255,.22);margin-top:7px;}
 body.light .s-sub{color:rgba(0,0,0,.3);}
 
-/* Stat color variants */
-.sc-lime .s-lbl{color:rgba(255,255,255,.85);} .sc-lime .s-val{color:var(--g);} .sc-lime .s-dot,.sc-lime::before{background:var(--g);}
-.sc-blue .s-lbl{color:rgba(255,255,255,.85);} .sc-blue .s-val{color:#60A5FA;} .sc-blue .s-dot,.sc-blue::before{background:#60A5FA;}
-.sc-amber .s-lbl{color:rgba(255,255,255,.85);} .sc-amber .s-val{color:#FBBF24;} .sc-amber .s-dot,.sc-amber::before{background:#FBBF24;}
-.sc-green .s-lbl{color:rgba(255,255,255,.85);} .sc-green .s-val{color:#34D399;} .sc-green .s-dot,.sc-green::before{background:#34D399;}
-.sc-teal .s-lbl{color:rgba(255,255,255,.85);} .sc-teal .s-val{color:#2DD4BF;} .sc-teal .s-dot,.sc-teal::before{background:#2DD4BF;}
-.sc-red .s-lbl{color:rgba(255,255,255,.85);} .sc-red .s-val{color:#F87171;} .sc-red .s-dot,.sc-red::before{background:#F87171;}
-.sc-purple .s-lbl{color:rgba(255,255,255,.85);} .sc-purple .s-val{color:#A78BFA;} .sc-purple .s-dot,.sc-purple::before{background:#A78BFA;}
+/* Stat color variants — all numbers lime green, dots keep accent colors */
+.s-lbl{color:rgba(255,255,255,.85);}
+.s-val{color:var(--g);}
+.sc-lime .s-dot,.sc-lime::before{background:var(--g);}
+.sc-blue .s-dot,.sc-blue::before{background:#60A5FA;}
+.sc-amber .s-dot,.sc-amber::before{background:#FBBF24;}
+.sc-green .s-dot,.sc-green::before{background:#34D399;}
+.sc-teal .s-dot,.sc-teal::before{background:#2DD4BF;}
+.sc-red .s-dot,.sc-red::before{background:#F87171;}
+.sc-purple .s-dot,.sc-purple::before{background:#A78BFA;}
 
 body.light .s-lbl{color:rgba(0,0,0,.8);}
-body.light .sc-lime .s-val{color:var(--g);}
-body.light .sc-blue .s-val{color:#1D4ED8;}
-body.light .sc-amber .s-val{color:#B45309;}
-body.light .sc-green .s-val{color:#047857;}
-body.light .sc-teal .s-val{color:#0F766E;}
-body.light .sc-red .s-val{color:#B91C1C;}
-body.light .sc-purple .s-val{color:#6D28D9;}
+body.light .s-val{color:var(--g);}
 
 /* 2-col grid */
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
@@ -119,6 +115,11 @@ body.light .empty-msg{color:rgba(0,0,0,.3);}
 .tm-value{font-size:26px;font-weight:900;letter-spacing:-1.5px;line-height:1;}
 .tm-label{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-top:6px;opacity:.75;}
 
+/* Task mini — all numbers lime */
+.tm-value{color:var(--g) !important;}
+.tm-label{color:rgba(255,255,255,.5) !important;}
+body.light .tm-label{color:rgba(0,0,0,.4) !important;}
+
 /* Task status rows */
 .ts-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);}
 .ts-row:last-child{border-bottom:none;}
@@ -130,7 +131,7 @@ body.light .ts-label{color:rgba(0,0,0,.5);}
 .ts-bar{background:rgba(255,255,255,.06);border-radius:3px;height:5px;overflow:hidden;}
 body.light .ts-bar{background:rgba(0,0,0,.07);}
 .ts-bar-fill{height:100%;border-radius:3px;}
-.ts-count{font-size:13px;font-weight:900;min-width:22px;text-align:right;}
+.ts-count{font-size:13px;font-weight:900;min-width:22px;text-align:right;color:var(--g);}
 
 /* Loading */
 .loading{display:flex;align-items:center;justify-content:center;height:120px;flex-direction:column;gap:10px;}
@@ -174,11 +175,7 @@ function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace
 
 var PROG_COLORS={videos:'#60A5FA',posters:'#A78BFA',live:'#F472B6',kol:'#2DD4BF'};
 
-function pctColor(pct){
-  if(pct>=80)return'#AAFF00';
-  if(pct>=50)return'#FBBF24';
-  return'#F87171';
-}
+function pctColor(pct){return'var(--g)';}
 
 function updateTs(){var el=document.getElementById('ts');if(!el)return;var n=new Date();var h=n.getHours(),m=n.getMinutes();el.textContent=(h%12||12)+':'+(m<10?'0':'')+m+(h<12?' am':' pm');}
 
@@ -191,7 +188,7 @@ function render(s,taskData){
   var ab=t.attentionBreakdown||{};
 
   var html='<div class="top-bar">'
-    +'<div><p class="eyebrow">Creaitors &middot; Content</p><h1 class="h-title">Campaign Stats</h1></div>'
+    +'<div><p class="eyebrow">Opxio &middot; Content</p><h1 class="h-title">Campaign Stats</h1></div>'
     +'<div class="top-right">'
     +'<span class="ts" id="ts"></span>'
     +'<button class="btn" onclick="toggleMode()">'+(isLight?'☾ Dark':'☀ Light')+'</button>'
@@ -201,9 +198,9 @@ function render(s,taskData){
   // Stat cards
   html+='<div class="stat-row">'
     +'<div class="stat card sc-lime"><div class="s-dot"></div><div class="s-lbl">Active Campaigns</div><div class="s-val">'+s.activeCampaigns+'</div><div class="s-sub">Currently running</div></div>'
-    +'<div class="stat card sc-amber"><div class="s-dot"></div><div class="s-lbl">Content In Motion</div><div class="s-val">'+(t.contentInMotion||0)+'</div><div class="s-sub">Videos · Posters · Live · KOL</div></div>'
-    +'<div class="stat card sc-green"><div class="s-dot"></div><div class="s-lbl">Completed</div><div class="s-val">'+s.completedDeliverables+'</div><div class="s-sub">'+remaining+' remaining</div></div>'
-    +'<div class="stat card sc-teal"><div class="s-dot"></div><div class="s-lbl">Avg Completion</div><div class="s-val">'+s.avgCompletion+'%</div><div class="s-sub">Across active campaigns</div></div>'
+    +'<div class="stat card sc-blue"><div class="s-dot"></div><div class="s-lbl">Content In Motion</div><div class="s-val">'+(t.contentInMotion||0)+'</div><div class="s-sub">Videos · Posters · Live · KOL</div></div>'
+    +'<div class="stat card sc-teal"><div class="s-dot"></div><div class="s-lbl">Completed</div><div class="s-val">'+s.completedDeliverables+'</div><div class="s-sub">'+remaining+' remaining</div></div>'
+    +'<div class="stat card sc-purple"><div class="s-dot"></div><div class="s-lbl">Avg Completion</div><div class="s-val">'+s.avgCompletion+'%</div><div class="s-sub">Across active campaigns</div></div>'
     +'</div>';
 
   // 2-col detail
@@ -257,13 +254,10 @@ function render(s,taskData){
     var totalTasks=t.tasksTotal||0;
     var overdue=ab.overdue||0;
     var dueWeek=t.dueThisWeek||0;
-    var overdueClass=overdue>0?'sc-red':'sc-green';
-    var overdueColor=overdue>0?'#F87171':'#34D399';
-
     html+='<div class="task-grid">'
-      +'<div class="task-mini card sc-purple"><div class="tm-dot" style="background:#A78BFA;opacity:.6;"></div><div class="tm-value" style="color:#A78BFA;">'+totalTasks+'</div><div class="tm-label" style="color:#A78BFA;">Active Tasks</div></div>'
-      +'<div class="task-mini card sc-amber"><div class="tm-dot" style="background:#FBBF24;opacity:.6;"></div><div class="tm-value" style="color:#FBBF24;">'+dueWeek+'</div><div class="tm-label" style="color:#FBBF24;">Due This Week</div></div>'
-      +'<div class="task-mini card '+overdueClass+'"><div class="tm-dot" style="background:'+overdueColor+';opacity:.6;"></div><div class="tm-value" style="color:'+overdueColor+';">'+overdue+'</div><div class="tm-label" style="color:'+overdueColor+';">'+(overdue>0?'Overdue':'On Track')+'</div></div>'
+      +'<div class="task-mini card sc-purple"><div class="tm-dot" style="background:#A78BFA;opacity:.6;"></div><div class="tm-value">'+totalTasks+'</div><div class="tm-label">Active Tasks</div></div>'
+      +'<div class="task-mini card sc-blue"><div class="tm-dot" style="background:#60A5FA;opacity:.6;"></div><div class="tm-value">'+dueWeek+'</div><div class="tm-label">Due This Week</div></div>'
+      +'<div class="task-mini card sc-teal"><div class="tm-dot" style="background:#2DD4BF;opacity:.6;"></div><div class="tm-value">'+overdue+'</div><div class="tm-label">'+(overdue>0?'Overdue':'On Track')+'</div></div>'
       +'</div>';
 
     var statuses=[
@@ -280,7 +274,7 @@ function render(s,taskData){
         +'<div class="ts-dot" style="background:'+st.color+';"></div>'
         +'<span class="ts-label">'+st.label+'</span>'
         +'<div class="ts-bar-wrap"><div class="ts-bar"><div class="ts-bar-fill" style="width:'+Math.max(barPct>0?8:0,barPct)+'%;background:'+st.color+';"></div></div></div>'
-        +'<span class="ts-count" style="color:'+st.color+';">'+st.count+'</span>'
+        +'<span class="ts-count">'+st.count+'</span>'
         +'</div>';
     }
     html+='</div>';
