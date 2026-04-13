@@ -145,14 +145,14 @@ module.exports = async function handler(req, res) {
     const nextTask = allTasks.find(t => t.properties['Order']?.number === nextOrder);
 
     if (!nextTask) {
-      // Last task — update Content Production status to Scheduled / Distribution
+      // Last task — update Content Production status to Ready to Post
       try {
         await fetch(`https://api.notion.com/v1/pages/${contentProductionId}`, {
           method: 'PATCH',
           headers,
           body: JSON.stringify({
             properties: {
-              'Content Status': { status: { name: 'Scheduled / Distribution' } },
+              'Content Status': { status: { name: 'Ready to Post' } },
             },
           }),
         });
@@ -162,12 +162,12 @@ module.exports = async function handler(req, res) {
 
       return res.status(200).json({
         success: true,
-        message: `"${taskName}" marked Done — all tasks complete. Content moved to Scheduled / Distribution.`,
+        message: `"${taskName}" marked Done — all tasks complete. Content moved to Ready to Post.`,
         currentTask: taskName,
         currentOrder,
         doneAt: now,
         durationDisplay,
-        contentStatus: 'Scheduled / Distribution',
+        contentStatus: 'Ready to Post',
       });
     }
 
