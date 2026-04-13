@@ -3,7 +3,7 @@
 // If current Task Status is "Review Needed" → keeps Accumulated Mins (continuation after QC rejection)
 // Otherwise → resets Accumulated Mins to 0 (fresh start)
 // Chain: Task → Content Production → Content Status = In Production
-//              → Deals → Campaign → Campaign Status = Active
+//              → Deals → Campaign → Campaign Status = Active (only if not already Active)
 // Environment variables: NOTION_API_KEY
 
 module.exports = async function handler(req, res) {
@@ -69,7 +69,7 @@ module.exports = async function handler(req, res) {
 
     let contentStatusUpdated = false;
     let campaignStatusUpdated = false;
-    let campaignId = null;
+    let campaignSkipped = false;
 
     if (contentRelation.length > 0) {
       const contentPageId = contentRelation[0].id;
@@ -107,19 +107,30 @@ module.exports = async function handler(req, res) {
               const campaignRelation = dealPage.properties['Campaign']?.relation || [];
 
               if (campaignRelation.length > 0) {
-                campaignId = campaignRelation[0].id;
+                const campaignPageId = campaignRelation[0].id;
 
-                // Step 5: Set Campaign Status → Active
-                const campaignUpdateRes = await fetch(`https://api.notion.com/v1/pages/${campaignId}`, {
-                  method: 'PATCH',
-                  headers,
-                  body: JSON.stringify({
-                    properties: {
-                      'Campaign Status': { status: { name: 'Active' } },
-                    },
-                  }),
-                });
-                if (campaignUpdateRes.ok) campaignStatusUpdated = true;
+                // Step 5: Fetch Campaign to check current status
+                const campaignPageRes = await fetch(`https://api.notion.com/v1/pages/${campaignPageId}`, { headers });
+                if (campaignPageRes.ok) {
+                  const campaignPage = await campaignPageRes.json();
+                  const campaignStatus = campaignPage.properties['Campaign Status']?.status?.name || '';
+
+                  // Only update if campaign is NOT already Active
+                  if (campaignStatus !== 'Active') {
+                    const campaignUpdateRes = await fetch(`https://api.notion.com/v1/pages/${campaignPageId}`, {
+                      method: 'PATCH',
+                      headers,
+                      body: JSON.stringify({
+                        properties: {
+                          'Campaign Status': { status: { name: 'Active' } },
+                        },
+                      }),
+                    });
+                    if (campaignUpdateRes.ok) campaignStatusUpdated = true;
+                  } else {
+                    campaignSkipped = true; // already Active, no need to update
+                  }
+                }
               }
             }
           }
@@ -140,7 +151,7 @@ module.exports = async function handler(req, res) {
       isQcRejection,
       contentStatusUpdated,
       campaignStatusUpdated,
-      campaignId,
+      campaignSkipped,
     });
 
   } catch (err) {
