@@ -1,9 +1,9 @@
 // Vercel Serverless Function — Approve QC
 // Triggered by a Notion Button on a Task page ("✅ Approve QC")
 // Guards: task must be in Pending QC Review
-// Marks current task as Done (preserves timer already set by Submit QC, no double-counting)
-// Cascades next task (by Order) on same Content Production page → Ready to Work
-// Cascade failure is non-fatal — task is always marked Done on success
+// If last task → Task Status = "Ready for Posting", Content Production = "Ready to Post"
+// If not last task → Task Status = "Done", next task (by Order) = "Ready to Work"
+// Cascade failure is non-fatal
 // Environment variables: NOTION_API_KEY
 
 const TASKS_DB_ID = '3348b289e31a80dc89e1eb7ba5b49b1a';
@@ -26,7 +26,6 @@ module.exports = async function handler(req, res) {
       'Content-Type': 'application/json',
     };
 
-    // Extract task page ID from Notion button webhook payload
     const body = req.body || {};
     const taskPageId = (
       body.page_id ||
@@ -58,28 +57,12 @@ module.exports = async function handler(req, res) {
 
     const now = new Date().toISOString();
 
-    // Step 1: Mark task Done — this is the critical action.
-    // Preserve existing timer: submit-qc already stamped Task Done On, don't overwrite it.
-    const doneRes = await fetch(`https://api.notion.com/v1/pages/${taskPageId}`, {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify({
-        properties: {
-          'Task Status': { status: { name: 'Done' } },
-        },
-      }),
-    });
-    if (!doneRes.ok) {
-      throw new Error(`Failed to mark task as Done: ${await doneRes.text()}`);
-    }
+    // Step 1: Cascade check — figure out if this is the last task BEFORE deciding status
+    let nextTask = null;
+    let contentProductionId = contentLinks[0]?.id || null;
 
-    // Step 2: Cascade — try to unlock next task. Non-fatal if this fails.
-    let cascadeResult = null;
     try {
-      if (contentLinks.length > 0 && currentOrder !== null) {
-        const contentProductionId = contentLinks[0].id;
-
-        // Find all tasks linked to the same Content Production page
+      if (contentProductionId && currentOrder !== null) {
         const queryRes = await fetch(`https://api.notion.com/v1/databases/${TASKS_DB_ID}/query`, {
           method: 'POST',
           headers,
@@ -90,57 +73,81 @@ module.exports = async function handler(req, res) {
             },
           }),
         });
-
         if (queryRes.ok) {
           const allTasks = (await queryRes.json()).results;
-          const nextTask = allTasks.find(t => t.properties['Order']?.number === currentOrder + 1);
+          nextTask = allTasks.find(t => t.properties['Order']?.number === currentOrder + 1) || null;
+        }
+      }
+    } catch (e) {
+      console.error('Cascade check error (non-fatal):', e.message);
+    }
 
-          if (nextTask) {
-            // Unlock next task
-            const nextTaskName = nextTask.properties['Task List']?.title?.map(t => t.plain_text).join('') || '';
-            const readyRes = await fetch(`https://api.notion.com/v1/pages/${nextTask.id}`, {
-              method: 'PATCH',
-              headers,
-              body: JSON.stringify({
-                properties: {
-                  'Task Status': { status: { name: 'Ready to Work' } },
-                },
-              }),
-            });
-            if (readyRes.ok) {
-              cascadeResult = { nextTask: nextTaskName, order: currentOrder + 1, status: 'Ready to Work' };
-            }
-          } else {
-            // No next task — this was the last one. Move content to Ready to Post.
-            await fetch(`https://api.notion.com/v1/pages/${contentProductionId}`, {
-              method: 'PATCH',
-              headers,
-              body: JSON.stringify({
-                properties: {
-                  'Content Status': { status: { name: 'Ready to Post' } },
-                },
-              }),
-            });
-            cascadeResult = { contentStatus: 'Ready to Post', lastTask: true };
-          }
+    const isLastTask = contentProductionId && currentOrder !== null && nextTask === null;
+
+    // Step 2: Set task status based on position in workflow
+    // Last task → Ready for Posting (content still needs to be published)
+    // Any other task → Done
+    const newTaskStatus = isLastTask ? 'Ready for Posting' : 'Done';
+
+    const updateRes = await fetch(`https://api.notion.com/v1/pages/${taskPageId}`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({
+        properties: {
+          'Task Status': { status: { name: newTaskStatus } },
+        },
+      }),
+    });
+    if (!updateRes.ok) {
+      throw new Error(`Failed to update task status: ${await updateRes.text()}`);
+    }
+
+    // Step 3: Cascade actions — non-fatal
+    let cascadeResult = null;
+    try {
+      if (isLastTask) {
+        // Last task QC approved → Content Production moves to Ready to Post
+        await fetch(`https://api.notion.com/v1/pages/${contentProductionId}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({
+            properties: {
+              'Content Status': { status: { name: 'Ready to Post' } },
+            },
+          }),
+        });
+        cascadeResult = { contentStatus: 'Ready to Post', lastTask: true };
+      } else if (nextTask) {
+        // Not last task — unlock the next one
+        const nextTaskName = nextTask.properties['Task List']?.title?.map(t => t.plain_text).join('') || '';
+        const readyRes = await fetch(`https://api.notion.com/v1/pages/${nextTask.id}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({
+            properties: {
+              'Task Status': { status: { name: 'Ready to Work' } },
+            },
+          }),
+        });
+        if (readyRes.ok) {
+          cascadeResult = { nextTask: nextTaskName, order: currentOrder + 1, status: 'Ready to Work' };
         }
       }
     } catch (cascadeErr) {
-      // Cascade failure is non-fatal — log it but don't fail the whole request
       console.error('Cascade error (non-fatal):', cascadeErr.message);
     }
 
     const message = cascadeResult?.lastTask
-      ? `"${taskName}" QC approved ✓ — all tasks complete. Content moved to Ready to Post.`
+      ? `"${taskName}" QC approved ✓ — ready to post. Content moved to Ready to Post.`
       : cascadeResult?.nextTask
         ? `"${taskName}" QC approved ✓ → "${cascadeResult.nextTask}" is now Ready to Work.`
-        : `"${taskName}" QC approved and marked Done.`;
+        : `"${taskName}" QC approved and marked ${newTaskStatus}.`;
 
     return res.status(200).json({
       success: true,
       message,
-      currentTask: { name: taskName, order: currentOrder, status: 'Done', approvedAt: now },
-      ...(cascadeResult ? { nextTask: cascadeResult } : {}),
+      currentTask: { name: taskName, order: currentOrder, status: newTaskStatus, approvedAt: now },
+      ...(cascadeResult ? { cascade: cascadeResult } : {}),
     });
 
   } catch (err) {
