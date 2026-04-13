@@ -62,20 +62,25 @@ body.light .panel-title{color:rgba(0,0,0,.7);}
 .camp-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:3px;}
 body.light .camp-scroll::-webkit-scrollbar-thumb{background:rgba(0,0,0,.08);}
 
-.camp-row{padding:11px 0;border-bottom:1px solid rgba(255,255,255,.04);}
+.camp-row{padding:12px 0;border-bottom:1px solid rgba(255,255,255,.04);}
 .camp-row:last-child{border-bottom:none;}
 body.light .camp-row{border-bottom-color:rgba(0,0,0,.05);}
 
-.camp-top{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.camp-top{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
 .camp-name{font-size:12.5px;font-weight:700;color:rgba(255,255,255,.85);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 body.light .camp-name{color:#222;}
-.camp-type{font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.3);white-space:nowrap;flex-shrink:0;}
-body.light .camp-type{background:rgba(0,0,0,.05);color:rgba(0,0,0,.4);}
-.health-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+
+.camp-meta{display:flex;align-items:center;gap:5px;margin-bottom:8px;flex-wrap:wrap;}
+.camp-tag{font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.3);white-space:nowrap;}
+body.light .camp-tag{background:rgba(0,0,0,.05);color:rgba(0,0,0,.4);}
+.camp-sep{font-size:9px;color:rgba(255,255,255,.12);}
+body.light .camp-sep{color:rgba(0,0,0,.15);}
+.camp-dates{font-size:9px;font-weight:600;color:rgba(255,255,255,.22);white-space:nowrap;}
+body.light .camp-dates{color:rgba(0,0,0,.28);}
 
 .camp-mid{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
 .deliv-chips{display:flex;gap:5px;flex-wrap:wrap;flex:1;}
-.dc{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,.05);color:rgba(255,255,255,.35);white-space:nowrap;}
+.dc{font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(255,255,255,.05);color:rgba(255,255,255,.32);white-space:nowrap;}
 body.light .dc{background:rgba(0,0,0,.05);color:rgba(0,0,0,.35);}
 .dc.done{background:var(--gm);color:var(--g);}
 .camp-pct{font-size:13px;font-weight:900;color:var(--g);min-width:36px;text-align:right;flex-shrink:0;}
@@ -149,19 +154,16 @@ function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace
 
 function updateTs(){var el=document.getElementById('ts');if(!el)return;var n=new Date();var h=n.getHours(),m=n.getMinutes();el.textContent=(h%12||12)+':'+(m<10?'0':'')+m+(h<12?' am':' pm');}
 
-function healthColor(pct){
-  if(pct>=80)return'var(--g)';
-  if(pct>=40)return'#FBBF24';
-  return'#F87171';
-}
 
-function renderDelivChips(cb, campName){
-  // cb is contentBreakdown per campaign if available, else use global
+var MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function fmtDate(d){if(!d)return'';var p=d.split('-');return MONTHS[parseInt(p[1])-1]+' '+parseInt(p[2]);}
+
+function renderDelivChips(cb){
   var types=[
-    {key:'videos',label:'V'},
-    {key:'posters',label:'P'},
-    {key:'live',label:'L'},
-    {key:'kol',label:'K'},
+    {key:'videos',label:'Videos'},
+    {key:'posters',label:'Posters'},
+    {key:'live',label:'Live Sessions'},
+    {key:'kol',label:'KOL'},
   ];
   var html='';
   for(var i=0;i<types.length;i++){
@@ -212,22 +214,24 @@ function render(s, taskData){
     html+='<div class="camp-scroll">';
     for(var j=0;j<s.campaignDetails.length;j++){
       var c=s.campaignDetails[j];
-      var hColor=healthColor(c.pct);
-      // per-campaign content breakdown if available, else fall back to global
       var campCb=c.contentBreakdown||cb;
+
+      // Build meta line: type · client · dates
+      var metaHtml='';
+      if(c.type&&c.type!=='N/A') metaHtml+='<span class="camp-tag">'+esc(c.type)+'</span>';
+      if(c.client) metaHtml+='<span class="camp-sep">·</span><span class="camp-tag">'+esc(c.client)+'</span>';
+      if(c.startDate||c.endDate){
+        var dateStr=(c.startDate?fmtDate(c.startDate):'?')+' → '+(c.endDate?fmtDate(c.endDate):'?');
+        metaHtml+='<span class="camp-sep">·</span><span class="camp-dates">'+dateStr+'</span>';
+      }
+
       html+='<div class="camp-row">'
-        // Top: name + type + health dot
-        +'<div class="camp-top">'
-        +'<span class="camp-name" title="'+esc(c.name)+'">'+esc(c.name)+'</span>'
-        +'<span class="camp-type">'+esc(c.type)+'</span>'
-        +'<div class="health-dot" style="background:'+hColor+';opacity:.8;" title="'+c.pct+'% complete"></div>'
-        +'</div>'
-        // Mid: deliverable chips + pct
+        +'<div class="camp-top"><span class="camp-name" title="'+esc(c.name)+'">'+esc(c.name)+'</span></div>'
+        +(metaHtml?'<div class="camp-meta">'+metaHtml+'</div>':'')
         +'<div class="camp-mid">'
-        +'<div class="deliv-chips">'+renderDelivChips(campCb, c.name)+'</div>'
+        +'<div class="deliv-chips">'+renderDelivChips(campCb)+'</div>'
         +'<span class="camp-pct">'+c.pct+'%</span>'
         +'</div>'
-        // Progress bar
         +'<div class="camp-bar-bg"><div class="camp-bar-fill" style="width:'+Math.max(c.pct>0?3:0,c.pct)+'%;"></div></div>'
         +'</div>';
     }
