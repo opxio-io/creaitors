@@ -2,8 +2,8 @@
 // Sets Task Started On = now, clears Task Done On + Duration Display, Task Status = In Progress
 // If current Task Status is "Review Needed" → keeps Accumulated Mins (continuation after QC rejection)
 // Otherwise → resets Accumulated Mins to 0 (fresh start)
-// If task has Content Production linked → sets Content Status = "In Production"
-// If Content Production has Related Campaign → sets Campaign Status = "Active"
+// Chain: Task → Content Production → Content Status = In Production
+//              → Deals → Campaign → Campaign Status = Active
 // Environment variables: NOTION_API_KEY
 
 module.exports = async function handler(req, res) {
@@ -67,15 +67,14 @@ module.exports = async function handler(req, res) {
     });
     if (!updateRes.ok) throw new Error(`Failed to start task: ${await updateRes.text()}`);
 
-    // Step 2: If Content Production is linked, set Content Status = In Production
-    // then check for Related Campaign → set Campaign Status = Active
     let contentStatusUpdated = false;
     let campaignStatusUpdated = false;
+    let campaignId = null;
 
     if (contentRelation.length > 0) {
       const contentPageId = contentRelation[0].id;
 
-      // Set Content Production to In Production
+      // Step 2: Set Content Production → In Production
       try {
         const contentUpdateRes = await fetch(`https://api.notion.com/v1/pages/${contentPageId}`, {
           method: 'PATCH',
@@ -91,27 +90,38 @@ module.exports = async function handler(req, res) {
         console.error('Content status update failed (non-fatal):', e.message);
       }
 
-      // Fetch Content Production page to get Related Campaign
+      // Step 3: Fetch Content Production → read Deals relation
       try {
         const contentPageRes = await fetch(`https://api.notion.com/v1/pages/${contentPageId}`, { headers });
         if (contentPageRes.ok) {
           const contentPage = await contentPageRes.json();
-          const campaignRelation = contentPage.properties['Related Campaign']?.relation || [];
+          const dealsRelation = contentPage.properties['Deals']?.relation || [];
 
-          if (campaignRelation.length > 0) {
-            const campaignPageId = campaignRelation[0].id;
+          if (dealsRelation.length > 0) {
+            const dealPageId = dealsRelation[0].id;
 
-            // Set Campaign Status = Active
-            const campaignUpdateRes = await fetch(`https://api.notion.com/v1/pages/${campaignPageId}`, {
-              method: 'PATCH',
-              headers,
-              body: JSON.stringify({
-                properties: {
-                  'Campaign Status': { status: { name: 'Active' } },
-                },
-              }),
-            });
-            if (campaignUpdateRes.ok) campaignStatusUpdated = true;
+            // Step 4: Fetch Deal → read Campaign relation
+            const dealPageRes = await fetch(`https://api.notion.com/v1/pages/${dealPageId}`, { headers });
+            if (dealPageRes.ok) {
+              const dealPage = await dealPageRes.json();
+              const campaignRelation = dealPage.properties['Campaign']?.relation || [];
+
+              if (campaignRelation.length > 0) {
+                campaignId = campaignRelation[0].id;
+
+                // Step 5: Set Campaign Status → Active
+                const campaignUpdateRes = await fetch(`https://api.notion.com/v1/pages/${campaignId}`, {
+                  method: 'PATCH',
+                  headers,
+                  body: JSON.stringify({
+                    properties: {
+                      'Campaign Status': { status: { name: 'Active' } },
+                    },
+                  }),
+                });
+                if (campaignUpdateRes.ok) campaignStatusUpdated = true;
+              }
+            }
           }
         }
       } catch (e) {
@@ -130,6 +140,7 @@ module.exports = async function handler(req, res) {
       isQcRejection,
       contentStatusUpdated,
       campaignStatusUpdated,
+      campaignId,
     });
 
   } catch (err) {
