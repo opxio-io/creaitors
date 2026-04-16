@@ -66,6 +66,15 @@ module.exports = async function handler(req, res) {
     const currentOrder = props['Order']?.number ?? null;
     const contentProductionLinks = props['Content Production']?.relation || [];
 
+    // Gate: Posting Link must be filled before task can be completed
+    const postingLink = props['Posting Link']?.url || null;
+    if (!postingLink || !postingLink.trim()) {
+      return res.status(422).json({
+        error: 'Posting Link required.',
+        message: `Cannot complete "${taskName}" — please paste the posting link before marking this task done.`,
+      });
+    }
+
     // Compute final duration:
     // If Submit QC already ran, Task Done On is already stamped and Accumulated Mins is final —
     // do NOT add more time (QC review wait time should not count).
